@@ -1,12 +1,18 @@
 import os
 import fitz
 from paddleocr import PaddleOCR
+from preprocessing import (
+    preprocess_normal,
+    preprocess_handwriting,
+    preprocess_table
+)
 
 # ======================================
 # CONFIGURATION
 # ======================================
-
+OCR_MODE = "normal"
 SHOW_CONFIDENCE = False
+USE_PREPROCESSING = True
 
 INPUT_FOLDER = "input"
 OUTPUT_FOLDER = "output"
@@ -34,6 +40,25 @@ ocr = PaddleOCR(
 
 print("OCR model loaded successfully!")
 
+def get_processed_image(image_path):
+
+    if OCR_MODE == "normal":
+        return preprocess_normal(
+            image_path
+        )
+
+    elif OCR_MODE == "handwriting":
+        return preprocess_handwriting(
+            image_path
+        )
+
+    elif OCR_MODE == "table":
+        return preprocess_table(
+            image_path
+        )
+
+    return image_path
+
 # ======================================
 # IMAGE OCR
 # ======================================
@@ -42,10 +67,27 @@ def process_image(image_path, output_file):
 
     try:
 
-        result = ocr.ocr(
-            image_path,
-            cls=True
-        )
+        if USE_PREPROCESSING:
+
+            processed_path = get_processed_image(
+                image_path
+            )
+
+            result = ocr.ocr(
+                processed_path,
+                cls=True
+            )
+
+            #os.remove(
+                #processed_path
+            #)
+
+        else:
+
+            result = ocr.ocr(
+                image_path,
+                cls=True
+            )
 
         with open(
             output_file,
@@ -76,18 +118,21 @@ def process_image(image_path, output_file):
 
                     print(text)
 
-                    file.write(text + "\n")
+                    file.write(
+                        text + "\n"
+                    )
 
             print("-" * 50)
 
-        print(f"Saved: {output_file}")
+        print(
+            f"Saved: {output_file}"
+        )
 
     except Exception as e:
 
         print(
             f"Error processing image: {e}"
         )
-
 # ======================================
 # PDF OCR
 # ======================================
@@ -96,7 +141,9 @@ def process_pdf(pdf_path, output_file):
 
     try:
 
-        document = fitz.open(pdf_path)
+        document = fitz.open(
+            pdf_path
+        )
 
         with open(
             output_file,
@@ -104,24 +151,50 @@ def process_pdf(pdf_path, output_file):
             encoding="utf-8"
         ) as file:
 
-            for page_num in range(len(document)):
+            for page_num in range(
+                len(document)
+            ):
 
-                page = document[page_num]
+                page = document[
+                    page_num
+                ]
 
                 pix = page.get_pixmap(
-                    matrix=fitz.Matrix(2, 2)
+                    matrix=fitz.Matrix(
+                        2,
+                        2
+                    )
                 )
 
                 temp_image = (
                     f"temp_page_{page_num}.png"
                 )
 
-                pix.save(temp_image)
-
-                result = ocr.ocr(
-                    temp_image,
-                    cls=True
+                pix.save(
+                    temp_image
                 )
+
+                if USE_PREPROCESSING:
+
+                    processed_path = get_processed_image(
+                        temp_image
+                    )
+
+                    result = ocr.ocr(
+                        processed_path,
+                        cls=True
+                    )
+
+                    #os.remove(
+                        #processed_path
+                    #)
+
+                else:
+
+                    result = ocr.ocr(
+                        temp_image,
+                        cls=True
+                    )
 
                 print(
                     f"\n===== PAGE {page_num + 1} ====="
@@ -151,20 +224,25 @@ def process_pdf(pdf_path, output_file):
 
                         print(text)
 
-                        file.write(text + "\n")
+                        file.write(
+                            text + "\n"
+                        )
 
-                os.remove(temp_image)
+                os.remove(
+                    temp_image
+                )
 
         document.close()
 
-        print(f"\nSaved: {output_file}")
+        print(
+            f"\nSaved: {output_file}"
+        )
 
     except Exception as e:
 
         print(
             f"Error processing PDF: {e}"
         )
-
 # ======================================
 # MENU
 # ======================================
@@ -175,6 +253,29 @@ while True:
     print("OCR SYSTEM")
     print("=" * 40)
 
+    print("OCR Modes:")
+    print("1. Normal")
+    print("2. Handwriting")
+    print("3. Table")
+
+    mode = input(
+        "\nChoose OCR Mode: "
+    ).strip()
+
+    if mode == "1":
+        OCR_MODE = "normal"
+
+    elif mode == "2":
+        OCR_MODE = "handwriting"
+
+    elif mode == "3":
+        OCR_MODE = "table"
+
+    else:
+        print("Invalid OCR Mode!")
+        continue
+
+    print("\nOperations:")
     print("1. Single Image OCR")
     print("2. Process All Images")
     print("3. PDF OCR")
