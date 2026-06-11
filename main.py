@@ -6,6 +6,7 @@ from preprocessing import (
     preprocess_handwriting,
     preprocess_table
 )
+from table_export import process_table
 
 # ======================================
 # CONFIGURATION
@@ -244,6 +245,7 @@ def process_pdf(pdf_path, output_file):
             f"Error processing PDF: {e}"
         )
 # ======================================
+# ======================================
 # MENU
 # ======================================
 
@@ -263,15 +265,19 @@ while True:
     ).strip()
 
     if mode == "1":
+
         OCR_MODE = "normal"
 
     elif mode == "2":
+
         OCR_MODE = "handwriting"
 
     elif mode == "3":
+
         OCR_MODE = "table"
 
     else:
+
         print("Invalid OCR Mode!")
         continue
 
@@ -310,10 +316,18 @@ while True:
             f"{os.path.splitext(filename)[0]}_result.txt"
         )
 
-        process_image(
-            image_path,
-            output_file
-        )
+        if OCR_MODE == "table":
+
+            process_table(
+                image_path
+            )
+
+        else:
+
+            process_image(
+                image_path,
+                output_file
+            )
 
     # ==================================
     # MULTIPLE IMAGE OCR
@@ -347,10 +361,18 @@ while True:
                     f"\nProcessing: {filename}"
                 )
 
-                process_image(
-                    image_path,
-                    output_file
-                )
+                if OCR_MODE == "table":
+
+                    process_table(
+                        image_path
+                    )
+
+                else:
+
+                    process_image(
+                        image_path,
+                        output_file
+                    )
 
         if not files_found:
 
