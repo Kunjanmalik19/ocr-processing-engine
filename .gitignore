@@ -35,3 +35,11 @@ Thumbs.db
 build/
 dist/
 *.egg-info/
+# Debug Images
+debug/
+
+# OCR Output
+output/
+
+# Temporary Images
+temp_page_*.png
