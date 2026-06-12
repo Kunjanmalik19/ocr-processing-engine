@@ -2,6 +2,8 @@ from paddleocr import PPStructure
 from bs4 import BeautifulSoup
 import pandas as pd
 import os
+import zipfile
+import shutil
 
 # Load once when imported
 table_engine = PPStructure(
@@ -112,8 +114,24 @@ def process_table(
             header=False
         )
 
-        last_csv = csv_path
-        last_xlsx = excel_path
+    if table_count == 0:
+
+        print(
+         "\nNo structured tables found."
+    )
+
+        print(
+            "This may be a scanned table."
+        )
+
+        return None
+
+# ONLY CREATE ZIP IF TABLES EXIST
+
+    zip_path = os.path.join(
+        "output",
+        f"{document_name}.zip"
+    )
 
         # print(
         #     f"\nTable {table_count} exported!"
@@ -126,17 +144,35 @@ def process_table(
         # print(
         #     f"Excel: {excel_path}"
         # )
-
-    if table_count == 0:
-
-        print(
-            "\nNo structured tables found."
+    zip_path = os.path.join(
+        "output",
+        f"{document_name}.zip"
         )
 
-        print(
-            "This may be a scanned table."
-        )
+    with zipfile.ZipFile(
+        zip_path,
+        "w",
+        zipfile.ZIP_DEFLATED
+    ) as zipf:
 
-        return None, None
+        for root, dirs, files in os.walk(
+            output_folder
+            ):
 
-    return last_csv, last_xlsx
+            for file in files:
+
+                file_path = os.path.join(
+                    root,
+                    file
+                    )
+
+                zipf.write(
+                    file_path,
+                    arcname=file
+                    )
+    shutil.rmtree(
+        output_folder,
+        ignore_errors=True
+            )
+
+    return zip_path

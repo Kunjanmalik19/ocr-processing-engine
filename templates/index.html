@@ -75,6 +75,14 @@
         </h2>
 
         <pre>{{ result }}</pre>
+        {% if processing_time %}
+
+<p>
+    Processing Time:
+    {{ processing_time }} seconds
+</p>
+
+{% endif %}
 
         {% endif %}
         {% if txt_file %}
@@ -95,24 +103,7 @@
 </a>
 
 {% endif %}
-{% if csv_file %}
 
-<br>
-
-<a href="/download/{{ csv_file }}">
-    Download CSV
-</a>
-
-{% endif %}
-{% if xlsx_file %}
-
-<br>
-
-<a href="/download/{{ xlsx_file }}">
-    Download XLSX
-</a>
-
-{% endif %}
 {% if zip_file %}
 
 <br><br>
