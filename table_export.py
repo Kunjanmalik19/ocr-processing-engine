@@ -8,22 +8,28 @@ table_engine = PPStructure(
     show_log=False
 )
 
-def process_table(image_path):
-
-    output_folder = "output"
-
-    os.makedirs(
+def process_table(
+    image_path,
+    document_name="table",
+    page_number=None
+):
+     BASE_DIR = os.path.dirname(
+     os.path.abspath(__file__)
+    )
+     output_folder = os.path.join(
+         BASE_DIR,
+        "output",
+        document_name
+    )
+     os.makedirs(
         output_folder,
         exist_ok=True
     )
-
-    result = table_engine(
+     result = table_engine(
         image_path
     )
-
-    table_count = 0
-
-    for block in result:
+     table_count = 0
+     for block in result:
 
         if block["type"] != "table":
             continue
@@ -63,14 +69,30 @@ def process_table(image_path):
 
         df = pd.DataFrame(rows)
 
+        # =========================
+        # UNIQUE FILE NAMES
+        # =========================
+
+        if page_number is None:
+
+            base_name = (
+                f"table_{table_count}"
+            )
+
+        else:
+
+            base_name = (
+                f"page_{page_number}_table_{table_count}"
+            )
+
         csv_path = os.path.join(
             output_folder,
-            f"table_{table_count}.csv"
+            f"{base_name}.csv"
         )
 
         excel_path = os.path.join(
             output_folder,
-            f"table_{table_count}.xlsx"
+            f"{base_name}.xlsx"
         )
 
         df.to_csv(
@@ -96,13 +118,11 @@ def process_table(image_path):
         print(
             f"Excel: {excel_path}"
         )
-
-    if table_count == 0:
-
-        print(
+        if table_count == 0:
+            print(
             "\nNo structured tables found."
-        )
+            )
 
-        print(
+            print(
             "This may be a scanned table."
-        )
+            )

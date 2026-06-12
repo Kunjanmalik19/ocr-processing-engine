@@ -250,6 +250,75 @@ def process_pdf(pdf_path, output_file):
         print(
             f"Error processing PDF: {e}"
         )
+
+def process_pdf_tables(
+    pdf_path
+):
+
+    import fitz
+    import shutil
+
+    temp_folder = "temp_pages"
+
+    os.makedirs(
+        temp_folder,
+        exist_ok=True
+    )
+
+    document = fitz.open(
+        pdf_path
+    )
+
+    pdf_name = os.path.splitext(
+        os.path.basename(
+            pdf_path
+        )
+    )[0]
+
+    for page_num in range(
+        len(document)
+    ):
+
+        page = document[
+            page_num
+        ]
+
+        pix = page.get_pixmap(
+            matrix=fitz.Matrix(
+                2,
+                2
+            )
+        )
+
+        image_path = os.path.join(
+            temp_folder,
+            f"page_{page_num+1}.png"
+        )
+
+        pix.save(
+            image_path
+        )
+
+        print(
+            f"\nProcessing Page {page_num+1}"
+        )
+
+        process_table(
+            image_path,
+            document_name=pdf_name,
+            page_number=page_num + 1
+        )
+
+    document.close()
+
+    shutil.rmtree(
+        temp_folder,
+        ignore_errors=True
+    )
+
+    print(
+        "\nPDF Table Extraction Complete!"
+    )
 # ======================================
 # ======================================
 # MENU
@@ -291,7 +360,8 @@ while True:
     print("1. Single Image OCR")
     print("2. Process All Images")
     print("3. PDF OCR")
-    print("4. Exit")
+    print("4. PDF Table Extraction")
+    print("5. Exit")
 
     choice = input(
         "\nEnter your choice: "
@@ -415,12 +485,29 @@ while True:
             pdf_path,
             output_file
         )
-
+    elif choice == "4":
+        filename = input(
+        "Enter PDF filename: "
+        ).strip()
+        pdf_path = os.path.join(
+        INPUT_FOLDER,
+        filename
+    )
+        if not os.path.exists(
+        pdf_path
+        ):
+            print(
+                "PDF file not found!"
+        )
+            continue
+        process_pdf_tables(
+            pdf_path
+            )
     # ==================================
     # EXIT
     # ==================================
 
-    elif choice == "4":
+    elif choice == "5":
 
         print("\nExiting OCR System...")
         break
