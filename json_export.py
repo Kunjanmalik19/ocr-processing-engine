@@ -22,7 +22,7 @@ def export_json(
 
     json_path = os.path.join(
         "output",
-        f"{os.path.splitext(filename)[0]}.json"
+         f"{os.path.splitext(filename)[0]}.json"
     )
 
     with open(
@@ -41,4 +41,5 @@ def export_json(
     print(
         f"JSON saved: {json_path}"
     )
-    
+
+    return json_path

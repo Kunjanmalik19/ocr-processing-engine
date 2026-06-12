@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>OCR Processing Engine</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>
+            OCR Processing Engine
+        </h1>
+
+        <form
+            method="POST"
+            action="/process"
+            enctype="multipart/form-data"
+        >
+
+            <label>
+                Select OCR Mode
+            </label>
+
+            <select name="mode">
+
+                <option value="normal">
+                    Normal OCR
+                </option>
+
+                <option value="handwriting">
+                    Handwriting OCR
+                </option>
+
+                <option value="table">
+                    Table Extraction
+                </option>
+
+            </select>
+
+            <br><br>
+
+            <label>
+                Upload Image or PDF
+            </label>
+
+            <input
+                type="file"
+                name="file"
+                required
+            >
+
+            <br><br>
+
+            <button type="submit">
+                Process
+            </button>
+
+        </form>
+
+        {% if result %}
+
+        <hr>
+
+        <h2>
+            Result
+        </h2>
+
+        <pre>{{ result }}</pre>
+
+        {% endif %}
+        {% if txt_file %}
+
+<br>
+
+<a href="/download/{{ txt_file }}">
+    Download TXT
+</a>
+
+{% endif %}
+{% if json_file %}
+
+<br>
+
+<a href="/download/{{ json_file }}">
+    Download JSON
+</a>
+
+{% endif %}
+{% if csv_file %}
+
+<br>
+
+<a href="/download/{{ csv_file }}">
+    Download CSV
+</a>
+
+{% endif %}
+{% if xlsx_file %}
+
+<br>
+
+<a href="/download/{{ xlsx_file }}">
+    Download XLSX
+</a>
+
+{% endif %}
+{% if zip_file %}
+
+<br><br>
+
+<a href="/download/{{ zip_file }}">
+    Download ZIP
+</a>
+
+{% endif %}
+    </div>
+
+</body>
+
+</html>

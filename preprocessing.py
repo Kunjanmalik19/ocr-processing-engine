@@ -26,8 +26,14 @@ def preprocess_normal(image_path):
     return output_path
 
 def preprocess_handwriting(image_path):
-    print("Running handwriting preprocessing...")
-    img = cv2.imread(image_path)
+
+    print(
+        "Running handwriting preprocessing..."
+    )
+
+    img = cv2.imread(
+        image_path
+    )
 
     gray = cv2.cvtColor(
         img,
@@ -37,22 +43,13 @@ def preprocess_handwriting(image_path):
     gray = cv2.resize(
         gray,
         None,
-        fx=3,
-        fy=3,
+        fx=2,
+        fy=2,
         interpolation=cv2.INTER_CUBIC
     )
 
     gray = cv2.fastNlMeansDenoising(
         gray
-    )
-
-    processed = cv2.adaptiveThreshold(
-        gray,
-        255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY,
-        31,
-        11
     )
 
     output_path = os.path.join(
@@ -62,11 +59,10 @@ def preprocess_handwriting(image_path):
 
     cv2.imwrite(
         output_path,
-        processed
+        gray
     )
 
     return output_path
-
 def preprocess_table(image_path):
 
     img = cv2.imread(image_path)

@@ -13,23 +13,32 @@ def process_table(
     document_name="table",
     page_number=None
 ):
-     BASE_DIR = os.path.dirname(
-     os.path.abspath(__file__)
+
+    BASE_DIR = os.path.dirname(
+        os.path.abspath(__file__)
     )
-     output_folder = os.path.join(
-         BASE_DIR,
+
+    output_folder = os.path.join(
+        BASE_DIR,
         "output",
         document_name
     )
-     os.makedirs(
+
+    os.makedirs(
         output_folder,
         exist_ok=True
     )
-     result = table_engine(
+
+    result = table_engine(
         image_path
     )
-     table_count = 0
-     for block in result:
+
+    table_count = 0
+
+    last_csv = None
+    last_xlsx = None
+
+    for block in result:
 
         if block["type"] != "table":
             continue
@@ -69,14 +78,10 @@ def process_table(
 
         df = pd.DataFrame(rows)
 
-        # =========================
-        # UNIQUE FILE NAMES
-        # =========================
-
         if page_number is None:
 
             base_name = (
-                f"table_{table_count}"
+                f"{document_name}_table{table_count}"
             )
 
         else:
@@ -107,22 +112,31 @@ def process_table(
             header=False
         )
 
-        print(
-            f"\nTable {table_count} exported!"
-        )
+        last_csv = csv_path
+        last_xlsx = excel_path
+
+        # print(
+        #     f"\nTable {table_count} exported!"
+        # )
+
+        # print(
+        #     f"CSV: {csv_path}"
+        # )
+
+        # print(
+        #     f"Excel: {excel_path}"
+        # )
+
+    if table_count == 0:
 
         print(
-            f"CSV: {csv_path}"
-        )
-
-        print(
-            f"Excel: {excel_path}"
-        )
-        if table_count == 0:
-            print(
             "\nNo structured tables found."
-            )
+        )
 
-            print(
+        print(
             "This may be a scanned table."
-            )
+        )
+
+        return None, None
+
+    return last_csv, last_xlsx
