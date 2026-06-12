@@ -7,6 +7,7 @@ from preprocessing import (
     preprocess_table
 )
 from table_export import process_table
+from json_export import export_json
 
 # ======================================
 # CONFIGURATION
@@ -89,7 +90,7 @@ def process_image(image_path, output_file):
                 image_path,
                 cls=True
             )
-
+        extracted_lines = []
         with open(
             output_file,
             "w",
@@ -102,7 +103,7 @@ def process_image(image_path, output_file):
             for line in result[0]:
 
                 text = line[1][0]
-
+                extracted_lines.append(text)
                 if SHOW_CONFIDENCE:
 
                     confidence = line[1][1]
@@ -126,8 +127,13 @@ def process_image(image_path, output_file):
             print("-" * 50)
 
         print(
-            f"Saved: {output_file}"
+            f"Saved: {output_file}")
+        export_json(
+        os.path.basename(image_path),
+        OCR_MODE,
+        extracted_lines
         )
+        
 
     except Exception as e:
 
