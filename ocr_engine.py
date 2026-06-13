@@ -113,6 +113,7 @@ def process_image(image_path, output_file,mode='normal'):
                 cls=False
             )
         extracted_lines = []
+        
         with open(
             output_file,
             "w",
@@ -122,9 +123,17 @@ def process_image(image_path, output_file,mode='normal'):
             print("\nExtracted Text:")
             print("-" * 50)
 
+            total_confidence = 0
+            confidence_count = 0
+
             for line in result[0]:
 
                 text = line[1][0]
+                confidence = line[1][1]
+
+                total_confidence += confidence
+                confidence_count += 1
+                
                 extracted_lines.append(text)
                 if SHOW_CONFIDENCE:
 
@@ -160,8 +169,19 @@ def process_image(image_path, output_file,mode='normal'):
         print(
             f"JSON Export: {time.time() - json_start:.2f}s"
             )
-        return "\n".join(
-            extracted_lines
+        
+        average_confidence = 0
+
+        if confidence_count > 0:
+
+            average_confidence = round(
+                (total_confidence / confidence_count) * 100,
+                2
+            )
+        return (
+
+        "\n".join(extracted_lines),
+        average_confidence
             )
 
     except Exception as e:
@@ -178,6 +198,8 @@ def process_pdf(pdf_path, output_file, mode):
 
     try:
         extracted_lines = []
+        total_confidence = 0
+        confidence_count = 0
 
         document = fitz.open(
             pdf_path
@@ -246,6 +268,10 @@ def process_pdf(pdf_path, output_file, mode):
                 for line in result[0]:
 
                     text = line[1][0]
+                    confidence = line[1][1]
+
+                    total_confidence += confidence
+                    confidence_count += 1
                     extracted_lines.append(
                         text
                         )
@@ -278,11 +304,26 @@ def process_pdf(pdf_path, output_file, mode):
             mode,
             extracted_lines
             )
+        
+        average_confidence = 0
+
+        if confidence_count > 0:
+
+            average_confidence = round(
+                (total_confidence / confidence_count) * 100,
+                2
+            )
+
+        print(
+            f"Average Confidence: {average_confidence}%"
+        )
         document.close()
 
         print(
             f"\nSaved: {output_file}"
         )
+
+        return average_confidence
 
     except Exception as e:
 
@@ -314,6 +355,9 @@ def process_pdf_tables(
         )
     )[0]
 
+    total_confidence = 0
+    confidence_count = 0
+
     for page_num in range(
         len(document)
     ):
@@ -342,11 +386,18 @@ def process_pdf_tables(
             #f"\nProcessing Page {page_num+1}"
         #)
 
-        process_table(
+        
+        _,page_confidence = process_table(
             image_path,
             document_name=pdf_name,
             page_number=page_num + 1
         )
+
+        if page_confidence > 0:
+
+            total_confidence += page_confidence
+
+            confidence_count += 1
 
     document.close()
 
@@ -391,7 +442,19 @@ def process_pdf_tables(
         ignore_errors=True
         )
     
+    average_confidence = 0
+
+    if confidence_count > 0:
+
+        average_confidence = round(
+            total_confidence / confidence_count,
+            2
+            )
+            
     print(
         "\nPDF Table Extraction Complete!"
     )
-    return zip_path
+    return (
+        zip_path,
+        average_confidence
+    )

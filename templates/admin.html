@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>
+        OCR Analytics Dashboard
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>
+            OCR Analytics Dashboard
+        </h1>
+
+        <div class="stats-box">
+
+            <h2>
+                System Statistics
+            </h2>
+
+            <p>
+                Files Processed:
+                {{ stats.files_processed }}
+            </p>
+
+            <p>
+                Successful:
+                {{ stats.successful }}
+            </p>
+
+            <p>
+                Failed:
+                {{ stats.failed }}
+            </p>
+
+            <p>
+                Success Rate:
+                {{ success_rate }}%
+            </p>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

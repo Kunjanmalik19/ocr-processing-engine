@@ -14,11 +14,14 @@
 
 <body>
 
+
     <div class="container">
 
         <h1>
             OCR Processing Engine
         </h1>
+
+        
 
         <form
             method="POST"
@@ -26,7 +29,6 @@
             enctype="multipart/form-data"
             onsubmit="showLoading()"
         >
-
             <label>
                 Select OCR Mode
             </label>
@@ -106,6 +108,15 @@
 <p>
     Processing Time:
     {{ processing_time }} seconds
+
+</p>
+
+{% endif %}
+{% if average_confidence %}
+
+<p>
+    Average OCR Confidence:
+    {{ average_confidence }}%
 </p>
 
 {% endif %}
@@ -147,10 +158,14 @@ function showLoading() {
     document.getElementById(
         "loading"
     ).style.display = "block";
+
     document.getElementById(
         "processBtn"
     ).disabled = true;
 
+    document.getElementById(
+        "processBtn"
+    ).innerText = "Processing...";
 
 }
 

@@ -34,6 +34,8 @@ def process_table(
     result = table_engine(
         image_path
     )
+    total_confidence = 0
+    confidence_count = 0
 
     table_count = 0
 
@@ -41,6 +43,12 @@ def process_table(
     last_xlsx = None
 
     for block in result:
+
+        if "score" in block:
+
+            total_confidence += block["score"]
+
+            confidence_count += 1
 
         if block["type"] != "table":
             continue
@@ -174,5 +182,17 @@ def process_table(
         output_folder,
         ignore_errors=True
             )
+    
+    average_confidence = 0
 
-    return zip_path
+    if confidence_count > 0:
+
+        average_confidence = round(
+            (total_confidence / confidence_count) * 100,
+            2
+        )
+
+    return (
+        zip_path,
+        average_confidence
+    )

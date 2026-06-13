@@ -1,6 +1,7 @@
 from flask import Flask
 from flask import render_template
 from flask import request
+
 from ocr_engine import process_image
 from table_export import process_table
 from flask import send_file
@@ -13,7 +14,12 @@ from ocr_engine import (
 import os
 import shutil
 import time
-from analytics import update_stats
+from analytics import (
+    update_stats,
+    get_stats,
+    get_success_rate,
+    log_error
+)
 MAX_FILE_SIZE = 20 * 1024 * 1024
 
 app = Flask(__name__)
@@ -51,6 +57,15 @@ def home():
     return render_template(
         "index.html"
     )
+
+@app.route("/admin")
+def admin():
+
+    return render_template(
+        "admin.html",
+        stats=get_stats(),
+        success_rate=get_success_rate()
+    )
 @app.route(
     "/download/<path:filename>"
 )
@@ -69,13 +84,15 @@ def download_file(
 def process():
 
     start_time = time.time()
+    average_confidence = None
 
     uploaded_files = request.files.getlist(
         "file"
     )
 
-    if len(uploaded_files) == 0:
 
+    if len(uploaded_files) == 0:
+        
         return render_template(
             "index.html",
             result="Please select files."
@@ -102,6 +119,7 @@ def process():
                 return render_template(
                     "index.html",
                     result="Unsupported file type."
+                    
                 )
 
             uploaded_file.seek(
@@ -118,6 +136,7 @@ def process():
                 return render_template(
                     "index.html",
                     result="File exceeds 20 MB limit."
+                    
                 )
 
         # ======================
@@ -240,7 +259,8 @@ def process():
                 "index.html",
                 result=f"{len(uploaded_files)} files processed successfully.",
                 zip_file=zip_file,
-                processing_time=processing_time
+                processing_time=processing_time,
+                average_confidence=average_confidence
             )
 
         # ======================
@@ -275,7 +295,7 @@ def process():
 
             if is_pdf:
 
-                zip_file = process_pdf_tables(
+                zip_file, average_confidence = process_pdf_tables(
                     file_path
                 )
 
@@ -285,7 +305,7 @@ def process():
 
             else:
 
-                zip_file = process_table(
+                zip_file, average_confidence = process_table(
                     file_path,
                     document_name=file_name
                 )
@@ -304,14 +324,15 @@ def process():
                 "index.html",
                 result=result,
                 zip_file=zip_file,
-                processing_time=processing_time
+                processing_time=processing_time,
+                average_confidence=average_confidence
             )
 
         else:
 
             if is_pdf:
 
-                process_pdf(
+                average_confidence = process_pdf(
                     file_path,
                     output_file,
                     mode
@@ -327,7 +348,7 @@ def process():
 
             else:
 
-                result = process_image(
+                result, average_confidence = process_image(
                     file_path,
                     output_file,
                     mode
@@ -352,13 +373,18 @@ def process():
                 result=result,
                 txt_file=txt_file,
                 json_file=json_file,
-                processing_time=processing_time
+                processing_time=processing_time,
+                average_confidence=average_confidence,
             )
 
     except Exception as e:
 
         print(
             f"Error: {e}"
+        )
+
+        log_error(
+            str(e)
         )
 
         update_stats(False)
