@@ -1,4 +1,5 @@
 import os
+import cv2
 import fitz
 from paddleocr import PaddleOCR
 from preprocessing import (
@@ -9,6 +10,7 @@ from preprocessing import (
 from table_export import process_table
 from json_export import export_json
 import zipfile
+import time
 
 
 # ======================================
@@ -38,7 +40,7 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 print("Loading OCR model...")
 
 ocr = PaddleOCR(
-    use_angle_cls=True,
+    use_angle_cls=False,
     lang='en'
 )
 
@@ -68,20 +70,37 @@ def get_processed_image(image_path,mode):
 # ======================================
 
 def process_image(image_path, output_file,mode='normal'):
+    import time
 
     try:
 
         if USE_PREPROCESSING:
+            prep_start = time.time()
 
             processed_path = get_processed_image(
                 image_path,
                 mode
             )
+            print(
+                f"Preprocessing: {time.time() - prep_start:.2f}s"
+                )
+            ocr_start = time.time()
+            img = cv2.imread(
+                processed_path
+                )
 
+            print(
+                "Image Shape:",
+                img.shape
+                )
             result = ocr.ocr(
                 processed_path,
-                cls=True
+                cls=False
             )
+
+            print(
+                f"OCR: {time.time() - ocr_start:.2f}s"
+                )
 
             #os.remove(
                 #processed_path
@@ -91,7 +110,7 @@ def process_image(image_path, output_file,mode='normal'):
 
             result = ocr.ocr(
                 image_path,
-                cls=True
+                cls=False
             )
         extracted_lines = []
         with open(
@@ -112,11 +131,11 @@ def process_image(image_path, output_file,mode='normal'):
                     confidence = line[1][1]
 
                     print(
-                        f"{text} | Confidence: {confidence:.2f}"
+                        f"{text}( Confidence: {confidence:.2f})"
                     )
 
                     file.write(
-                        f"{text} | Confidence: {confidence:.2f}\n"
+                        f"{text} ( Confidence: {confidence:.2f})\n"
                     )
 
                 else:
@@ -131,11 +150,16 @@ def process_image(image_path, output_file,mode='normal'):
 
         print(
             f"Saved: {output_file}")
+        
+        json_start = time.time()
         export_json(
         os.path.basename(image_path),
         mode,
         extracted_lines
         )
+        print(
+            f"JSON Export: {time.time() - json_start:.2f}s"
+            )
         return "\n".join(
             extracted_lines
             )
@@ -197,7 +221,7 @@ def process_pdf(pdf_path, output_file, mode):
 
                     result = ocr.ocr(
                         processed_path,
-                        cls=True
+                        cls=False
                     )
 
                     #os.remove(
@@ -208,7 +232,7 @@ def process_pdf(pdf_path, output_file, mode):
 
                     result = ocr.ocr(
                         temp_image,
-                        cls=True
+                        cls=False
                     )
 
                 print(

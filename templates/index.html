@@ -24,6 +24,7 @@
             method="POST"
             action="/process"
             enctype="multipart/form-data"
+            onsubmit="showLoading()"
         >
 
             <label>
@@ -55,14 +56,39 @@
             <input
                 type="file"
                 name="file"
+                multiple
                 required
             >
+            <br><br>    
+
+            <div
+    id="previewContainer"
+></div>
+<p
+    id="pdfName"
+    style="display:none;"
+></p>
 
             <br><br>
 
-            <button type="submit">
-                Process
-            </button>
+            <button
+    id="processBtn"
+    type="submit"
+>
+    Process
+</button>
+            <div
+    id="loading"
+    style="display:none;"
+>
+    <h3>
+        Processing file...
+        Please wait.
+    </h3>
+    <p>
+        Large PDFs may take up to a minute.
+    </p>
+</div>
 
         </form>
 
@@ -114,7 +140,94 @@
 
 {% endif %}
     </div>
+<script>
 
+function showLoading() {
+
+    document.getElementById(
+        "loading"
+    ).style.display = "block";
+    document.getElementById(
+        "processBtn"
+    ).disabled = true;
+
+
+}
+
+</script>
+<script>
+
+const fileInput =
+    document.querySelector(
+        'input[type="file"]'
+    );
+
+fileInput.addEventListener(
+    "change",
+    function(event){
+
+        const files =
+            event.target.files;
+
+        const container =
+            document.getElementById(
+                "previewContainer"
+            );
+
+        container.innerHTML = "";
+
+        for(
+            let i = 0;
+            i < files.length;
+            i++
+        ){
+
+            const file =
+                files[i];
+
+            if(
+                file.type.startsWith(
+                    "image/"
+                )
+            ){
+
+                const reader =
+                    new FileReader();
+
+                reader.onload =
+                    function(e){
+
+                        const img =
+                            document.createElement(
+                                "img"
+                            );
+
+                        img.src =
+                            e.target.result;
+
+                        img.style.maxWidth =
+                            "200px";
+
+                        img.style.margin =
+                            "10px";
+
+                        img.style.border =
+                            "1px solid #ccc";
+
+                        container.appendChild(
+                            img
+                        );
+                    };
+
+                reader.readAsDataURL(
+                    file
+                );
+            }
+        }
+    }
+);
+
+</script>
 </body>
 
 </html>
