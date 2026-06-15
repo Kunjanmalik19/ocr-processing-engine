@@ -156,6 +156,15 @@ def process_table(
         "output",
         f"{document_name}.zip"
         )
+    print("\nFILES GOING INTO ZIP:")
+
+    for root, dirs, files in os.walk(
+        output_folder
+    ):
+
+        for file in files:
+
+            print(file)
 
     with zipfile.ZipFile(
         zip_path,
@@ -178,10 +187,7 @@ def process_table(
                     file_path,
                     arcname=file
                     )
-    shutil.rmtree(
-        output_folder,
-        ignore_errors=True
-            )
+   
     
     average_confidence = 0
 
@@ -193,6 +199,6 @@ def process_table(
         )
 
     return (
-        zip_path,
+        output_folder,
         average_confidence
     )

@@ -387,7 +387,7 @@ def process_pdf_tables(
         #)
 
         
-        _,page_confidence = process_table(
+        output_folder,page_confidence = process_table(
             image_path,
             document_name=pdf_name,
             page_number=page_num + 1
@@ -414,6 +414,10 @@ def process_pdf_tables(
         "output",
         f"{pdf_name}.zip"
         )
+    print(
+        "Final output folder:",
+        output_folder
+    )
 
     with zipfile.ZipFile(
         zip_path,

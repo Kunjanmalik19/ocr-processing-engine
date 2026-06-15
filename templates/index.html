@@ -9,6 +9,11 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='style.css') }}"
     >
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
 </head>
 
@@ -17,50 +22,89 @@
 
     <div class="container">
 
-        <h1>
-            OCR Processing Engine
-        </h1>
+        <div class="hero">
 
-        
+    <h1>
+        OCR Processing Engine
+    </h1>
 
+    <p>
+        Intelligent Document Processing for Images and PDFs
+    </p>
+
+</div>
+
+       
         <form
             method="POST"
             action="/process"
             enctype="multipart/form-data"
             onsubmit="showLoading()"
         >
-            <label>
-                Select OCR Mode
-            </label>
+            <div class="mode-section">
 
-            <select name="mode">
+    <label>
+        Document Processing Mode
+    </label>
 
-                <option value="normal">
-                    Normal OCR
-                </option>
+   <select name="mode" class="mode-select">
 
-                <option value="handwriting">
-                    Handwriting OCR
-                </option>
+    <option value="auto" selected>
+        Auto Detect (Recommended)
+    </option>
 
-                <option value="table">
-                    Table Extraction
-                </option>
+    <option value="normal">
+        Normal OCR
+    </option>
 
-            </select>
+    <option value="handwriting">
+        Handwriting OCR
+    </option>
+
+    <option value="table">
+        Table Extraction
+    </option>
+
+</select>
+
+</div>
+
+                
 
             <br><br>
 
-            <label>
-                Upload Image or PDF
-            </label>
+            <div class="upload-box">
 
-            <input
-                type="file"
-                name="file"
-                multiple
-                required
-            >
+    <input
+        type="file"
+        id="fileInput"
+        name="file"
+        multiple
+        required
+        hidden
+    >
+
+    <label
+    for="fileInput"
+    class="upload-label"
+>
+
+    <h2>
+        📄 Drag & Drop Files Here
+    </h2>
+
+    <p>
+        or click to browse files
+    </p>
+
+    <small>
+        Supports PDF, PNG, JPG, TIFF
+        (Max 100 MB)
+    </small>
+
+</label>
+
+</div>
             <br><br>    
 
             <div
@@ -72,84 +116,261 @@
 ></p>
 
             <br><br>
-
-            <button
+<button
     id="processBtn"
     type="submit"
+    class="process-btn"
 >
-    Process
+    Process Document
 </button>
-            <div
+    <div
     id="loading"
     style="display:none;"
 >
+
     <h3>
-        Processing file...
-        Please wait.
+        ⏳ Processing Document...
     </h3>
+
     <p>
-        Large PDFs may take up to a minute.
+        OCR is currently running.
     </p>
+
+    <p>
+        Please do not refresh or close this page.
+    </p>
+
+</div>
+        </form>
+{% if uploaded_filenames %}
+
+<div class="preview-card">
+
+    <h2 style="width:100%;">
+    Uploaded Documents
+</h2>
+
+    {% for filename in uploaded_filenames %}
+
+{% if filename.endswith(
+('.png','.jpg','.jpeg','.bmp','.tiff')
+) %}
+
+<a
+    href="{{ url_for('serve_input_file', filename=filename) }}"
+    target="_blank"
+>
+
+    <img
+        src="{{ url_for('serve_input_file', filename=filename) }}"
+        class="result-preview"
+    >
+
+</a>
+{% elif filename.endswith('.pdf') %}
+
+<a
+    href="{{ url_for('serve_input_file', filename=filename) }}"
+    target="_blank"
+    class="pdf-preview-link"
+>
+
+    <div class="pdf-preview">
+
+        <h3>
+            📄 {{ filename }}
+        </h3>
+
+        <p>
+            Click to open PDF
+        </p>
+
+    </div>
+
+</a>
+
+{% endif %}
+
+{% endfor %}
+
 </div>
 
-        </form>
+{% elif uploaded_filename %}
 
+<div class="preview-card">
+
+    <h2>
+        Uploaded Document
+    </h2>
+
+  {% if uploaded_filename.endswith(
+('.png','.jpg','.jpeg','.bmp','.tiff')
+) %}
+
+<a
+    href="{{ url_for('serve_input_file', filename=uploaded_filename) }}"
+    target="_blank"
+>
+
+    <img
+        src="{{ url_for('serve_input_file', filename=uploaded_filename) }}"
+        class="result-preview"
+    >
+
+</a>
+
+{% elif uploaded_filename.endswith('.pdf') %}
+
+<a
+    href="{{ url_for('serve_input_file', filename=uploaded_filename) }}"
+    target="_blank"
+    class="pdf-preview-link"
+>
+
+    <div class="pdf-preview">
+
+        <h3>
+            📄 {{ uploaded_filename }}
+        </h3>
+
+        <p>
+            Click to open PDF
+        </p>
+
+    </div>
+
+</a>
+
+{% endif %}
+
+
+
+
+</div>
+
+{% endif %}
         {% if result %}
 
         <hr>
+        {% if detected_mode %}
+
+<div class="metric-card">
+
+    <h2>
+        {{ detected_mode|title }}
+    </h2>
+
+    <p>
+        Detected Mode
+    </p>
+
+</div>
+
+{% endif %}
+{% if processed_summary %}
+
+<div class="result-card">
+
+    <h2>
+        Processing Summary
+    </h2>
+
+    {% for item in processed_summary %}
+
+        <p>{{ item }}</p>
+
+    {% endfor %}
+
+</div>
+
+{% endif %}
 
         <h2>
             Result
         </h2>
 
-        <pre>{{ result }}</pre>
-        {% if processing_time %}
+        <div class="result-card">
 
-<p>
-    Processing Time:
-    {{ processing_time }} seconds
+    <h2>
+        OCR Result
+    </h2>
 
-</p>
+    <pre>{{ result }}</pre>
+
+</div>
+ <div class="metrics-row">
+
+{% if processing_time %}
+
+    <div class="metric-card">
+
+        <h2>
+            {{ processing_time }}s
+        </h2>
+
+        <p>
+            Processing Time
+        </p>
+
+    </div>
 
 {% endif %}
+
 {% if average_confidence %}
 
-<p>
-    Average OCR Confidence:
-    {{ average_confidence }}%
-</p>
+    <div class="metric-card">
+
+        <h2>
+            {{ average_confidence }}%
+        </h2>
+
+        <p>
+            OCR Confidence
+        </p>
+
+    </div>
 
 {% endif %}
 
+</div>
+
         {% endif %}
-        {% if txt_file %}
+       <div class="download-section">
 
-<br>
+{% if txt_file %}
 
-<a href="/download/{{ txt_file }}">
-    Download TXT
+<a
+    class="download-btn"
+    href="/download/{{ txt_file }}"
+>
+    📄 Download TXT
 </a>
 
 {% endif %}
+
 {% if json_file %}
 
-<br>
-
-<a href="/download/{{ json_file }}">
-    Download JSON
+<a
+    class="download-btn"
+    href="/download/{{ json_file }}"
+>
+    📊 Download JSON
 </a>
 
 {% endif %}
 
 {% if zip_file %}
 
-<br><br>
-
-<a href="/download/{{ zip_file }}">
-    Download ZIP
+<a
+    class="download-btn"
+    href="/download/{{ zip_file }}"
+>
+    📦 Download ZIP
 </a>
 
 {% endif %}
+
+</div>
     </div>
 <script>
 
@@ -165,14 +386,17 @@ function showLoading() {
 
     document.getElementById(
         "processBtn"
+    ).style.pointerEvents = "none";
+
+    document.getElementById(
+        "processBtn"
     ).innerText = "Processing...";
 
 }
 
 </script>
 <script>
-
-const fileInput =
+    const fileInput =
     document.querySelector(
         'input[type="file"]'
     );
@@ -200,6 +424,8 @@ fileInput.addEventListener(
             const file =
                 files[i];
 
+            // IMAGE PREVIEW
+
             if(
                 file.type.startsWith(
                     "image/"
@@ -220,14 +446,8 @@ fileInput.addEventListener(
                         img.src =
                             e.target.result;
 
-                        img.style.maxWidth =
-                            "200px";
-
-                        img.style.margin =
-                            "10px";
-
-                        img.style.border =
-                            "1px solid #ccc";
+                        img.className =
+                            "result-preview";
 
                         container.appendChild(
                             img
@@ -238,10 +458,37 @@ fileInput.addEventListener(
                     file
                 );
             }
+
+            // PDF PREVIEW
+
+            else if(
+                file.type ===
+                "application/pdf"
+            ){
+
+                const pdfCard =
+                    document.createElement(
+                        "div"
+                    );
+
+                pdfCard.className =
+                    "pdf-preview";
+
+                pdfCard.innerHTML =
+                    `
+                    <h3>📄 ${file.name}</h3>
+                    <p>
+                        PDF selected successfully
+                    </p>
+                    `;
+
+                container.appendChild(
+                    pdfCard
+                );
+            }
         }
     }
 );
-
 </script>
 </body>
 
