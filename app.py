@@ -20,7 +20,7 @@ from analytics import (
     get_success_rate,
     log_error
 )
-MAX_FILE_SIZE = 20 * 1024 * 1024
+MAX_FILE_SIZE = 100 * 1024 * 1024
 
 app = Flask(__name__)
 
@@ -135,7 +135,7 @@ def process():
 
                 return render_template(
                     "index.html",
-                    result="File exceeds 20 MB limit."
+                    result="File exceeds 100 MB limit."
                     
                 )
 
