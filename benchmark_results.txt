@@ -1,0 +1,9 @@
+Benchmark Date: 2026-06-16
+
+Run 1: 1.92s
+Run 2: 1.34s
+Run 3: 1.29s
+Run 4: 1.26s
+Run 5: 1.22s
+
+Average: ~1.4s
