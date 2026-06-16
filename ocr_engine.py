@@ -18,7 +18,7 @@ import time
 # ======================================
 OCR_MODE = "normal"
 SHOW_CONFIDENCE = False
-USE_PREPROCESSING = True
+USE_PREPROCESSING = False
 
 INPUT_FOLDER = "input"
 OUTPUT_FOLDER = "output"
@@ -39,9 +39,14 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 print("Loading OCR model...")
 
+
 ocr = PaddleOCR(
     use_angle_cls=False,
-    lang='en'
+    lang='en',
+    show_log=False,
+    enable_mkldnn=True,
+    cpu_threads=4,
+    det_limit_side_len=640
 )
 
 print("OCR model loaded successfully!")
@@ -65,6 +70,8 @@ def get_processed_image(image_path,mode):
 
     return image_path
 
+
+
 # ======================================
 # IMAGE OCR
 # ======================================
@@ -73,6 +80,8 @@ def process_image(image_path, output_file,mode='normal'):
     import time
 
     try:
+        start = time.time()
+        processed_path = image_path
 
         if USE_PREPROCESSING:
             prep_start = time.time()
@@ -107,11 +116,34 @@ def process_image(image_path, output_file,mode='normal'):
             #)
 
         else:
+            ocr_start = time.time()
 
             result = ocr.ocr(
                 image_path,
                 cls=False
             )
+            print(
+                f"OCR ONLY: {time.time() - ocr_start:.2f}s"
+            )
+
+
+            print("OCR FILE:", processed_path)
+
+            print(
+                "FILE SIZE:",
+                round(
+                    os.path.getsize(processed_path) / 1024 / 1024,
+                    2
+                ),
+                "MB"
+            )
+
+            img = cv2.imread(processed_path)
+
+            if img is None:
+                print("FAILED TO LOAD:", processed_path)
+            else:
+                print("IMAGE SHAPE:", img.shape)
         extracted_lines = []
         
         with open(
@@ -178,6 +210,9 @@ def process_image(image_path, output_file,mode='normal'):
                 (total_confidence / confidence_count) * 100,
                 2
             )
+        print(
+            f"TOTAL FUNCTION: {time.time() - start:.2f}s"
+        )
         return (
 
         "\n".join(extracted_lines),
@@ -266,6 +301,7 @@ def process_pdf(pdf_path, output_file, mode):
                 )
 
                 for line in result[0]:
+
 
                     text = line[1][0]
                     confidence = line[1][1]

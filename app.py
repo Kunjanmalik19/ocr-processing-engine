@@ -1,7 +1,7 @@
 from flask import Flask
 from flask import render_template
 from flask import request
-
+import cv2
 from ocr_engine import process_image
 from table_export import process_table
 from flask import send_file
@@ -47,7 +47,12 @@ def allowed_file(filename):
     )
 
 
+TEMP_UPLOAD_FOLDER = "temp_uploads"
 
+os.makedirs(
+    TEMP_UPLOAD_FOLDER,
+    exist_ok=True
+)
 os.makedirs(
     UPLOAD_FOLDER,
     exist_ok=True
@@ -188,14 +193,30 @@ def process():
 
             for uploaded_file in uploaded_files:
 
-                file_path = os.path.join(
-                    UPLOAD_FOLDER,
-                    uploaded_file.filename
+                import uuid
+
+                unique_name = (
+                    f"{uuid.uuid4().hex}_{uploaded_file.filename}"
                 )
 
-                uploaded_file.save(
-                    file_path
+                file_path = os.path.join(
+                    TEMP_UPLOAD_FOLDER,
+                    unique_name
                 )
+                uploaded_file.save(file_path)
+
+                if uploaded_file.filename.lower().endswith(
+                    (".png", ".jpg", ".jpeg", ".bmp", ".tiff")
+                ):
+
+                    img = cv2.imread(file_path)
+
+                    if img is not None:
+
+                        print(
+                            "Original Size:",
+                            (img.shape[1], img.shape[0])
+                        )
                 current_mode = mode
 
                 if mode == "auto":
@@ -278,6 +299,8 @@ def process():
                         processed_files.append(
                             uploaded_file.filename
                         )
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
 
                         continue
                 output_file = os.path.join(
@@ -392,6 +415,8 @@ def process():
                         json_source,
                         json_destination
                         )
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
             zip_file = os.path.join(
                 "output",
                 "batch_results.zip"
@@ -443,6 +468,7 @@ def process():
                 +
                 "\n\nZIP package ready for download."
             )
+            
 
             update_stats(True)
 
@@ -465,6 +491,7 @@ def process():
                 
                 ]
             )
+        
 
         # ======================
         # SINGLE FILE
@@ -473,7 +500,7 @@ def process():
         uploaded_file = uploaded_files[0]
 
         file_path = os.path.join(
-            UPLOAD_FOLDER,
+            TEMP_UPLOAD_FOLDER,
             uploaded_file.filename
         )
 
@@ -482,15 +509,18 @@ def process():
         )
         if mode == "auto":
 
+            detect_start = time.time()
+
             mode = detect_document_type(
                 file_path
             )
 
             print(
-                f"Detected Mode: {mode}"
+                f"Document Detection: {time.time() - detect_start:.2f}s"
             )
+
             print(
-                f"Mode after detection = {mode}"
+                f"Detected Mode: {mode}"
             )
 
         is_pdf = uploaded_file.filename.lower().endswith(
@@ -577,6 +607,8 @@ def process():
                 time.time() - start_time,
                 2
             )
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
             return render_template(
                 "index.html",
@@ -622,7 +654,7 @@ def process():
                         "normal"
                     )
 
-                    if normal_confidence < 90:
+                    if normal_confidence < 75:
 
                         print(
                             "Trying handwriting OCR..."
@@ -673,6 +705,8 @@ def process():
                 time.time() - start_time,
                 2
             )
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
             return render_template(
                 "index.html",
@@ -708,5 +742,5 @@ def process():
 if __name__ == "__main__":
 
     app.run(
-        debug=True
+        debug=False
     )
