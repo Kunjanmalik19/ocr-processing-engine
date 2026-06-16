@@ -44,3 +44,7 @@ output/
 # Temporary Images
 temp_page_*.png
 experiment/
+temp_pages/
+output/
+__pycache__/
+*.pyc
