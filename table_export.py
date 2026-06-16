@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import zipfile
 import shutil
+import time
 
 # Load once when imported
 table_engine = PPStructure(
@@ -30,9 +31,13 @@ def process_table(
         output_folder,
         exist_ok=True
     )
+    start = time.time()
 
     result = table_engine(
         image_path
+    )
+    print(
+        f"PPStructure: {time.time()-start:.2f}s"
     )
     total_confidence = 0
     confidence_count = 0

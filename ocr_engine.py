@@ -45,9 +45,11 @@ ocr = PaddleOCR(
     lang='en',
     show_log=False,
     enable_mkldnn=True,
-    cpu_threads=4,
-    det_limit_side_len=640
+    cpu_threads=8,
+    det_limit_side_len=512
 )
+print("OCR MODEL LOADED")
+print("CPU COUNT:", os.cpu_count())
 
 print("OCR model loaded successfully!")
 
@@ -232,6 +234,8 @@ def process_image(image_path, output_file,mode='normal'):
 def process_pdf(pdf_path, output_file, mode):
 
     try:
+        page_images = []
+        pdf_start = time.time()
         extracted_lines = []
         total_confidence = 0
         confidence_count = 0
@@ -253,6 +257,8 @@ def process_pdf(pdf_path, output_file, mode):
                 page = document[
                     page_num
                 ]
+                page_start = time.time()
+                render_start = time.time()
 
                 pix = page.get_pixmap(
                     matrix=fitz.Matrix(
@@ -268,6 +274,10 @@ def process_pdf(pdf_path, output_file, mode):
                 pix.save(
                     temp_image
                 )
+                print(
+                    f"Render Page {page_num + 1}: "
+                    f"{time.time() - render_start:.2f}s"
+                )  
 
                 if USE_PREPROCESSING:
 
@@ -275,10 +285,15 @@ def process_pdf(pdf_path, output_file, mode):
                         temp_image,
                         mode
                     )
+                    ocr_start = time.time()
 
                     result = ocr.ocr(
                         processed_path,
                         cls=False
+                    )
+                    print(
+                        f"OCR Page {page_num + 1}: "
+                        f"{time.time() - ocr_start:.2f}s"
                     )
 
                     #os.remove(
@@ -286,10 +301,15 @@ def process_pdf(pdf_path, output_file, mode):
                     #)
 
                 else:
+                    ocr_start = time.time()
 
                     result = ocr.ocr(
                         temp_image,
                         cls=False
+                    )
+                    print(
+                        f"OCR Page {page_num + 1}: "
+                        f"{time.time() - ocr_start:.2f}s"
                     )
 
                 print(
@@ -335,6 +355,10 @@ def process_pdf(pdf_path, output_file, mode):
                 os.remove(
                     temp_image
                 )
+                print(
+                    f"Page {page_num + 1} Total: "
+                    f"{time.time() - page_start:.2f}s"
+                )
         export_json(
             os.path.basename(pdf_path),
             mode,
@@ -354,10 +378,15 @@ def process_pdf(pdf_path, output_file, mode):
             f"Average Confidence: {average_confidence}%"
         )
         document.close()
+        print(
+            f"PDF TOTAL: "
+            f"{time.time() - pdf_start:.2f}s"
+        )
 
         print(
             f"\nSaved: {output_file}"
         )
+
 
         return average_confidence
 
@@ -373,6 +402,8 @@ def process_pdf_tables(
 
     import fitz
     import shutil
+
+    pdf_start = time.time()
 
     temp_folder = "temp_pages"
 
@@ -401,11 +432,13 @@ def process_pdf_tables(
         page = document[
             page_num
         ]
+        page_start = time.time()
+        render_start = time.time()
 
         pix = page.get_pixmap(
             matrix=fitz.Matrix(
-                2,
-                2
+                1.5,
+                1.5
             )
         )
 
@@ -417,10 +450,15 @@ def process_pdf_tables(
         pix.save(
             image_path
         )
+        print(
+            f"Render Page {page_num+1}: "
+            f"{time.time() - render_start:.2f}s"
+        )
 
         #print(
             #f"\nProcessing Page {page_num+1}"
         #)
+        table_start = time.time()
 
         
         output_folder,page_confidence = process_table(
@@ -428,12 +466,20 @@ def process_pdf_tables(
             document_name=pdf_name,
             page_number=page_num + 1
         )
+        print(
+            f"Table Extraction Page {page_num+1}: "
+            f"{time.time() - table_start:.2f}s"
+        )
 
         if page_confidence > 0:
 
             total_confidence += page_confidence
 
             confidence_count += 1
+        print(
+            f"Page {page_num+1} Total: "
+            f"{time.time() - page_start:.2f}s"
+        )
 
     document.close()
 
@@ -454,6 +500,7 @@ def process_pdf_tables(
         "Final output folder:",
         output_folder
     )
+    zip_start = time.time()
 
     with zipfile.ZipFile(
         zip_path,
@@ -477,10 +524,19 @@ def process_pdf_tables(
     print(
         f"ZIP created: {zip_path}"
     )
+    print(
+        f"ZIP Creation: "
+        f"{time.time() - zip_start:.2f}s"
+    )
+    cleanup_start = time.time()
     shutil.rmtree(
         output_folder,
         ignore_errors=True
         )
+    print(
+        f"Cleanup: "
+        f"{time.time() - cleanup_start:.2f}s"
+    )
     
     average_confidence = 0
 
@@ -494,7 +550,15 @@ def process_pdf_tables(
     print(
         "\nPDF Table Extraction Complete!"
     )
+    print(
+        f"PDF TABLE TOTAL: "
+        f"{time.time() - pdf_start:.2f}s"
+    )
+    print(
+        f"TABLE CONFIDENCE: {average_confidence}%"
+    )
     return (
         zip_path,
         average_confidence
     )
+

@@ -8,12 +8,16 @@ ocr = PaddleOCR(
     enable_mkldnn=True,
     cpu_threads=4
 )
+print("OCR CONFIG:")
+print("cpu_threads =", 4)
+print("mkldnn =", True)
+print("side_len =", 640)
 
 for i in range(5):
     start = time.time()
 
     ocr.ocr(
-        r"input\invoice.png",
+        r"input\svcvscas.jpg",
         cls=False
     )
 

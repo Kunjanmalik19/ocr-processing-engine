@@ -1,9 +1,37 @@
-Benchmark Date: 2026-06-16
+OCR SYSTEM BENCHMARK
 
-Run 1: 1.92s
-Run 2: 1.34s
-Run 3: 1.29s
-Run 4: 1.26s
-Run 5: 1.22s
+IMAGE OCR
 
-Average: ~1.4s
+invoice.png
+Run 1:3.47
+Run 2:2.52
+Run 3:2.45
+Average:2.81
+
+svcvscas.jpg
+Run 1:16.84
+Run 2:15.84
+Run 3:15.65
+Average:16.11
+
+PDF OCR
+
+admit card.pdf
+Run 1:4.37
+Run 2:3.59
+Run 3:3.77
+Average:3.99
+
+amarjeet Case Study.pdf
+Run 1:40.8
+Run 2:55.5
+Run 3:53.05
+Average:49.78
+
+TABLE PDF
+
+2page.pdf
+Run 1:25.65
+Run 2:24.39
+Run 3:24.12
+Average:24.72
