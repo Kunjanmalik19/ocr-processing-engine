@@ -152,6 +152,7 @@ def process_image(image_path, output_file,mode='normal'):
             else:
                 print("IMAGE SHAPE:", img.shape)
         extracted_lines = []
+        layout_geometry = []
         
         with open(
             output_file,
@@ -169,6 +170,12 @@ def process_image(image_path, output_file,mode='normal'):
 
                 text = line[1][0]
                 confidence = line[1][1]
+                layout_geometry.append({
+                    "page_number": 1,
+                    "bbox": line[0],
+                    "text": text,
+                    "confidence": round(float(confidence), 4)
+                })
 
                 total_confidence += confidence
                 confidence_count += 1
@@ -203,7 +210,8 @@ def process_image(image_path, output_file,mode='normal'):
         export_json(
         os.path.basename(image_path),
         mode,
-        extracted_lines
+        extracted_lines,
+        layout_geometry=layout_geometry
         )
         print(
             f"JSON Export: {time.time() - json_start:.2f}s"
@@ -315,6 +323,7 @@ def process_pdf(pdf_path, output_file, mode):
         page_images = []
         pdf_start = time.time()
         extracted_lines = []
+        layout_geometry = []
         total_confidence = 0
         confidence_count = 0
 
@@ -387,6 +396,12 @@ def process_pdf(pdf_path, output_file, mode):
 
                     text = line[1][0]
                     confidence = line[1][1]
+                    layout_geometry.append({
+                        "page_number": page_num + 1,
+                        "bbox": line[0],
+                        "text": text,
+                        "confidence": round(float(confidence), 4)
+                    })
 
                     total_confidence += confidence
                     confidence_count += 1
@@ -419,7 +434,8 @@ def process_pdf(pdf_path, output_file, mode):
         export_json(
             os.path.basename(pdf_path),
             mode,
-            extracted_lines
+            extracted_lines,
+            layout_geometry=layout_geometry
             )
         
         average_confidence = 0

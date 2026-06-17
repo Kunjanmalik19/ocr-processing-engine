@@ -5,7 +5,8 @@ import os
 def export_json(
     filename,
     ocr_mode,
-    extracted_lines
+    extracted_lines,
+    layout_geometry=None
 ):
 
     os.makedirs(
@@ -19,6 +20,8 @@ def export_json(
         "line_count": len(extracted_lines),
         "text": extracted_lines
     }
+    if layout_geometry is not None:
+        data["_internal_layout"] = layout_geometry
 
     json_path = os.path.join(
         "output",
