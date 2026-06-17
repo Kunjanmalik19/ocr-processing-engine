@@ -12,6 +12,7 @@ from ocr_engine import (
 )
 
 import os
+import traceback
 import shutil
 import time
 from analytics import (
@@ -22,7 +23,10 @@ from analytics import (
 )
 from document_classifier import detect_document_type
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import as_completed
 MAX_FILE_SIZE = 100 * 1024 * 1024
+BATCH_WORKERS = 3
 
 app = Flask(__name__)
 
@@ -109,6 +113,43 @@ def uploaded_file_preview(
             filename
         )
     )
+
+def save_uploaded_file(uploaded_file):
+    import uuid
+
+    unique_name = (
+        f"{uuid.uuid4().hex}_{uploaded_file.filename}"
+    )
+
+    file_path = os.path.join(
+        TEMP_UPLOAD_FOLDER,
+        unique_name
+    )
+
+    uploaded_file.save(file_path)
+
+    return file_path
+
+def process_single_batch_file(
+    file_path,
+    filename,
+    mode,
+    batch_folder
+):
+    current_mode = mode
+
+    if mode == "auto":
+
+        current_mode = detect_document_type(
+            file_path
+        )
+
+    return {
+        "filename": filename,
+        "mode": current_mode,
+        "file_path": file_path
+    }
+
 @app.route(
     "/process",
     methods=["POST"]
@@ -193,17 +234,17 @@ def process():
 
             for uploaded_file in uploaded_files:
 
-                import uuid
-
-                unique_name = (
-                    f"{uuid.uuid4().hex}_{uploaded_file.filename}"
+                file_path = save_uploaded_file(
+                    uploaded_file
+                )
+                worker_data = process_single_batch_file(
+                    file_path,
+                    uploaded_file.filename,
+                    mode,
+                    batch_folder
                 )
 
-                file_path = os.path.join(
-                    TEMP_UPLOAD_FOLDER,
-                    unique_name
-                )
-                uploaded_file.save(file_path)
+                print(worker_data)
 
                 if uploaded_file.filename.lower().endswith(
                     (".png", ".jpg", ".jpeg", ".bmp", ".tiff")
@@ -217,92 +258,86 @@ def process():
                             "Original Size:",
                             (img.shape[1], img.shape[0])
                         )
-                current_mode = mode
+                current_mode = worker_data["mode"]
 
-                if mode == "auto":
+                processed_summary.append(
+                    f"{uploaded_file.filename} → {current_mode}"
+                )
 
-                    current_mode = detect_document_type(
-                        file_path
-                    )
+
+                print(
+                    f"{uploaded_file.filename} -> {current_mode}"
+                )
+                if current_mode == "table":
+
+                    if uploaded_file.filename.lower().endswith(".pdf"):
+
+                        zip_path, confidence = process_pdf_tables(
+                            file_path
+                        )
+
+                        confidence_scores.append(
+                            confidence
+                        )
+
+
+                        with zipfile.ZipFile(
+                            zip_path,
+                            "r"
+                        ) as table_zip:
+
+                            table_zip.extractall(
+                                batch_folder
+                            )
+                        print(
+                            "Batch folder contents:",
+                            os.listdir(batch_folder)
+                        )
+
+                        os.remove(
+                            zip_path
+                        )
+
+                    else:
+
+                        output_folder, confidence = process_table(
+                            file_path,
+                            document_name=os.path.splitext(
+                                uploaded_file.filename
+                            )[0]
+                        )
+
+                        confidence_scores.append(
+                            confidence
+                        )
+                        for file in os.listdir(
+                            output_folder
+                        ):
+
+                            shutil.copy(
+                                os.path.join(
+                                    output_folder,
+                                    file
+                                ),
+                                batch_folder
+                            )
+
+                        shutil.rmtree(
+                            output_folder,
+                            ignore_errors=True
+                        )
 
                     processed_summary.append(
-                        f"{uploaded_file.filename} → {current_mode}"
+                        f"{uploaded_file.filename} → table"
                     )
 
-
-                    print(
-                        f"{uploaded_file.filename} -> {current_mode}"
+                    processed_files.append(
+                        uploaded_file.filename
                     )
-                    if current_mode == "table":
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
 
-                        if uploaded_file.filename.lower().endswith(".pdf"):
-
-                            zip_path, confidence = process_pdf_tables(
-                                file_path
-                            )
-
-                            confidence_scores.append(
-                                confidence
-                            )
-
-
-                            with zipfile.ZipFile(
-                                zip_path,
-                                "r"
-                            ) as table_zip:
-
-                                table_zip.extractall(
-                                    batch_folder
-                                )
-                            print(
-                                "Batch folder contents:",
-                                os.listdir(batch_folder)
-                            )
-
-                            os.remove(
-                                zip_path
-                            )
-
-                        else:
-
-                            output_folder, confidence = process_table(
-                                file_path,
-                                document_name=os.path.splitext(
-                                    uploaded_file.filename
-                                )[0]
-                            )
-
-                            confidence_scores.append(
-                                confidence
-                            )
-                            for file in os.listdir(
-                                output_folder
-                            ):
-
-                                shutil.copy(
-                                    os.path.join(
-                                        output_folder,
-                                        file
-                                    ),
-                                    batch_folder
-                                )
-
-                            shutil.rmtree(
-                                output_folder,
-                                ignore_errors=True
-                            )
-
-                        processed_summary.append(
-                            f"{uploaded_file.filename} → table"
-                        )
-
-                        processed_files.append(
-                            uploaded_file.filename
-                        )
-                        if os.path.exists(file_path):
-                            os.remove(file_path)
-
-                        continue
+                    continue
                 output_file = os.path.join(
                     batch_folder,
                     f"{os.path.splitext(uploaded_file.filename)[0]}_result.txt"
@@ -724,6 +759,8 @@ def process():
 
     except Exception as e:
 
+        traceback.print_exc()
+
         print(
             f"Error: {e}"
         )
@@ -742,5 +779,5 @@ def process():
 if __name__ == "__main__":
 
     app.run(
-        debug=False
+        debug=True
     )

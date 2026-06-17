@@ -262,8 +262,8 @@ def process_pdf(pdf_path, output_file, mode):
 
                 pix = page.get_pixmap(
                     matrix=fitz.Matrix(
-                        2,
-                        2
+                        1.5,
+                        1.5
                     )
                 )
 
