@@ -1,0 +1,268 @@
+====================================================
+OCR PROCESSING ENGINE - PERFORMANCE BENCHMARK LOG
+====================================================
+
+SYSTEM CONFIGURATION
+----------------------------------------------------
+Date:17-06-2026
+CPU:
+RAM:
+Python:
+PaddleOCR:
+PaddlePaddle:
+
+OCR Settings:
+cpu_threads =
+det_limit_side_len =
+enable_mkldnn =
+
+Batch Settings:
+BATCH_WORKERS =
+
+====================================================
+IMAGE OCR BENCHMARKS
+====================================================
+
+TEST FILE: invoice.png
+
+Run 1:
+OCR ONLY:
+TOTAL FUNCTION:
+
+Run 2:
+OCR ONLY:
+TOTAL FUNCTION:
+
+Run 3:
+OCR ONLY:
+TOTAL FUNCTION:
+
+Average:
+OCR ONLY:
+TOTAL FUNCTION:
+
+
+----------------------------------------------------
+
+TEST FILE: Screenshot_1.png
+
+Run 1:
+OCR ONLY:
+TOTAL FUNCTION:
+
+Run 2:
+OCR ONLY:
+TOTAL FUNCTION:
+
+Run 3:
+OCR ONLY:
+TOTAL FUNCTION:
+
+Average:
+OCR ONLY:
+TOTAL FUNCTION:
+
+
+----------------------------------------------------
+
+TEST FILE: Screenshot_2.png
+
+Run 1:
+OCR ONLY:
+TOTAL FUNCTION:
+
+Run 2:
+OCR ONLY:
+TOTAL FUNCTION:
+
+Run 3:
+OCR ONLY:
+TOTAL FUNCTION:
+
+Average:
+OCR ONLY:
+TOTAL FUNCTION:
+
+
+====================================================
+PDF OCR BENCHMARKS
+====================================================
+
+TEST FILE: admit card.pdf
+
+Run 1:
+PDF TOTAL:
+
+Run 2:
+PDF TOTAL:
+
+Run 3:
+PDF TOTAL:
+
+Average:
+PDF TOTAL:
+
+
+----------------------------------------------------
+
+TEST FILE: amarjeet Case Study.pdf
+
+Pages:
+
+Run 1:
+PDF TOTAL:
+
+Run 2:
+PDF TOTAL:
+
+Run 3:
+PDF TOTAL:
+
+Average:
+PDF TOTAL:
+
+
+====================================================
+TABLE EXTRACTION BENCHMARKS
+====================================================
+
+TEST FILE: 2page.pdf
+
+Run 1:
+PDF TABLE TOTAL:
+
+Run 2:
+PDF TABLE TOTAL:
+
+Run 3:
+PDF TABLE TOTAL:
+
+Average:
+PDF TABLE TOTAL:
+
+
+====================================================
+PARALLEL OCR BENCHMARKS
+====================================================
+
+Configuration:
+cpu_threads =
+BATCH_WORKERS =
+
+----------------------------------------------------
+
+TEST: 2 Images
+
+Files:
+1.
+2.
+
+Total Request Time:
+
+Image 1 OCR:
+Image 2 OCR:
+
+Notes:
+
+
+----------------------------------------------------
+
+TEST: 3 Images
+
+Files:
+1.
+2.
+3.
+
+Total Request Time:
+
+Image 1 OCR:
+Image 2 OCR:
+Image 3 OCR:
+
+Notes:
+
+
+----------------------------------------------------
+
+TEST: 5 Images
+
+Files:
+1.
+2.
+3.
+4.
+5.
+
+Total Request Time:
+
+Notes:
+
+
+====================================================
+CONFIGURATION COMPARISON
+====================================================
+
+Config A
+cpu_threads =
+BATCH_WORKERS =
+
+Results:
+-
+
+----------------------------------------------------
+
+Config B
+cpu_threads =
+BATCH_WORKERS =
+
+Results:
+-
+
+----------------------------------------------------
+
+Config C
+cpu_threads =
+BATCH_WORKERS =
+
+Results:
+-
+
+====================================================
+FINAL WINNER
+====================================================
+
+Best Configuration:
+
+cpu_threads =
+BATCH_WORKERS =
+
+Reason:
+
+-
+
+Average Image OCR:
+
+Average PDF OCR:
+
+Average Batch Throughput:
+
+====================================================
+CHANGE LOG
+====================================================
+
+Date:
+Change:
+Result:
+
+----------------------------------------------------
+
+Date:
+Change:
+Result:
+
+----------------------------------------------------
+
+Date:
+Change:
+Result:

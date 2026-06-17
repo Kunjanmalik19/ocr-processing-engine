@@ -11,6 +11,11 @@ from table_export import process_table
 from json_export import export_json
 import zipfile
 import time
+import uuid
+from concurrent.futures import (
+    ThreadPoolExecutor,
+    as_completed
+)
 
 
 # ======================================
@@ -19,7 +24,7 @@ import time
 OCR_MODE = "normal"
 SHOW_CONFIDENCE = False
 USE_PREPROCESSING = False
-
+PDF_PAGE_WORKERS = 2
 INPUT_FOLDER = "input"
 OUTPUT_FOLDER = "output"
 
@@ -45,7 +50,7 @@ ocr = PaddleOCR(
     lang='en',
     show_log=False,
     enable_mkldnn=True,
-    cpu_threads=8,
+    cpu_threads=4,
     det_limit_side_len=512
 )
 print("OCR MODEL LOADED")
@@ -227,6 +232,79 @@ def process_image(image_path, output_file,mode='normal'):
             f"Error processing image: {e}"
         )
         return None
+    
+def process_pdf_page(
+    page,
+    page_num,
+    mode
+):
+
+    render_start = time.time()
+
+    pix = page.get_pixmap(
+        matrix=fitz.Matrix(
+            1.5,
+            1.5
+        )
+    )
+
+    temp_image = (
+        f"temp_page_{uuid.uuid4().hex}.png"
+    )
+
+    pix.save(
+        temp_image
+    )
+
+    print(
+        f"Render Page {page_num + 1}: "
+        f"{time.time() - render_start:.2f}s"
+    )
+
+    if USE_PREPROCESSING:
+
+        processed_path = get_processed_image(
+            temp_image,
+            mode
+        )
+
+        ocr_start = time.time()
+        ocr_engine = ocr
+
+        result = ocr_engine.ocr(
+            processed_path,
+            cls=False
+        )
+        
+        print(
+            f"OCR Page {page_num + 1}: "
+            f"{time.time() - ocr_start:.2f}s"
+        )
+
+    else:
+
+        ocr_start = time.time()
+        ocr_engine = ocr 
+
+        
+
+        result = ocr_engine.ocr(
+            temp_image,
+            cls=False
+        )
+
+        print(
+            f"OCR Page {page_num + 1}: "
+            f"{time.time() - ocr_start:.2f}s"
+        )
+
+    os.remove(
+        temp_image
+    )
+
+    return {
+        "ocr_result": result
+    }
 # ======================================
 # PDF OCR
 # ======================================
@@ -243,6 +321,7 @@ def process_pdf(pdf_path, output_file, mode):
         document = fitz.open(
             pdf_path
         )
+        page_results = {}
         
         with open(
             output_file,
@@ -250,67 +329,51 @@ def process_pdf(pdf_path, output_file, mode):
             encoding="utf-8"
         ) as file:
 
-            for page_num in range(
-                len(document)
+            page_results = {}
+
+            with ThreadPoolExecutor(
+                max_workers=PDF_PAGE_WORKERS
+            ) as executor:
+
+                futures = {
+
+                    executor.submit(
+                        process_pdf_page,
+                        document[page_num],
+                        page_num,
+                        mode
+                    ): page_num
+
+                    for page_num in range(
+                        len(document)
+                    )
+                }
+
+                for future in as_completed(
+                    futures
+                ):
+
+                    page_num = futures[
+                        future
+                    ]
+
+                    page_results[
+                        page_num
+                    ] = future.result()
+
+            for page_num in sorted(
+                page_results.keys()
             ):
 
-                page = document[
+                page_start = time.time()
+
+                page_data = page_results[
                     page_num
                 ]
-                page_start = time.time()
-                render_start = time.time()
 
-                pix = page.get_pixmap(
-                    matrix=fitz.Matrix(
-                        1.5,
-                        1.5
-                    )
-                )
-
-                temp_image = (
-                    f"temp_page_{page_num}.png"
-                )
-
-                pix.save(
-                    temp_image
-                )
-                print(
-                    f"Render Page {page_num + 1}: "
-                    f"{time.time() - render_start:.2f}s"
-                )  
-
-                if USE_PREPROCESSING:
-
-                    processed_path = get_processed_image(
-                        temp_image,
-                        mode
-                    )
-                    ocr_start = time.time()
-
-                    result = ocr.ocr(
-                        processed_path,
-                        cls=False
-                    )
-                    print(
-                        f"OCR Page {page_num + 1}: "
-                        f"{time.time() - ocr_start:.2f}s"
-                    )
-
-                    #os.remove(
-                        #processed_path
-                    #)
-
-                else:
-                    ocr_start = time.time()
-
-                    result = ocr.ocr(
-                        temp_image,
-                        cls=False
-                    )
-                    print(
-                        f"OCR Page {page_num + 1}: "
-                        f"{time.time() - ocr_start:.2f}s"
-                    )
+                result = page_data[
+                    "ocr_result"
+                ]
 
                 print(
                     f"\n===== PAGE {page_num + 1} ====="
@@ -322,7 +385,6 @@ def process_pdf(pdf_path, output_file, mode):
 
                 for line in result[0]:
 
-
                     text = line[1][0]
                     confidence = line[1][1]
 
@@ -330,11 +392,9 @@ def process_pdf(pdf_path, output_file, mode):
                     confidence_count += 1
                     extracted_lines.append(
                         text
-                        )
+                    )
 
                     if SHOW_CONFIDENCE:
-
-                        confidence = line[1][1]
 
                         print(
                             f"{text} | Confidence: {confidence:.2f}"
@@ -352,9 +412,6 @@ def process_pdf(pdf_path, output_file, mode):
                             text + "\n"
                         )
 
-                os.remove(
-                    temp_image
-                )
                 print(
                     f"Page {page_num + 1} Total: "
                     f"{time.time() - page_start:.2f}s"
@@ -395,6 +452,16 @@ def process_pdf(pdf_path, output_file, mode):
         print(
             f"Error processing PDF: {e}"
         )
+
+    finally:
+
+        try:
+
+            document.close()
+
+        except:
+
+            pass
 
 def process_pdf_tables(
     pdf_path
@@ -466,6 +533,9 @@ def process_pdf_tables(
             document_name=pdf_name,
             page_number=page_num + 1
         )
+        if output_folder is None:
+
+            continue
         print(
             f"Table Extraction Page {page_num+1}: "
             f"{time.time() - table_start:.2f}s"

@@ -137,7 +137,10 @@ def process_table(
             "This may be a scanned table."
         )
 
-        return None
+        return (
+            None,
+            0
+            )
 
 # ONLY CREATE ZIP IF TABLES EXIST
 

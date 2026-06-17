@@ -26,7 +26,7 @@ import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 MAX_FILE_SIZE = 100 * 1024 * 1024
-BATCH_WORKERS = 3
+BATCH_WORKERS = 2
 
 app = Flask(__name__)
 
@@ -139,17 +139,76 @@ def process_single_batch_file(
     current_mode = mode
 
     if mode == "auto":
+        current_mode = detect_document_type(file_path)
 
-        current_mode = detect_document_type(
-            file_path
+    is_pdf = filename.lower().endswith(".pdf")
+
+    if not is_pdf and current_mode != "table":
+
+        output_file = os.path.join(
+            batch_folder,
+            f"{os.path.splitext(filename)[0]}_result.txt"
         )
+
+        if current_mode == "ocr":
+
+            normal_result, normal_confidence = process_image(
+                file_path,
+                output_file,
+                "normal"
+            )
+
+            confidence = normal_confidence
+
+        else:
+
+            _, confidence = process_image(
+                file_path,
+                output_file,
+                current_mode
+            )
+
+        return {
+            "filename": filename,
+            "mode": current_mode,
+            "file_path": file_path,
+            "is_pdf": False,
+            "image_done": True,
+            "pdf_done": False,
+            "confidence": confidence
+        }
+    
+    if is_pdf and current_mode != "table":
+
+        output_file = os.path.join(
+            batch_folder,
+            f"{os.path.splitext(filename)[0]}_result.txt"
+        )
+
+        pdf_confidence = process_pdf(
+            file_path,
+            output_file,
+            current_mode
+        )
+
+        return {
+            "filename": filename,
+            "mode": current_mode,
+            "file_path": file_path,
+            "is_pdf": True,
+            "image_done": False,
+            "pdf_done": True,
+            "confidence": pdf_confidence
+        }
 
     return {
         "filename": filename,
         "mode": current_mode,
-        "file_path": file_path
+        "file_path": file_path,
+        "is_pdf": is_pdf,
+        "image_done": False,
+        "pdf_done": False
     }
-
 @app.route(
     "/process",
     methods=["POST"]
@@ -231,18 +290,54 @@ def process():
                 exist_ok=True
             )
             processed_summary = []
-
+            saved_files = []
             for uploaded_file in uploaded_files:
 
                 file_path = save_uploaded_file(
                     uploaded_file
                 )
-                worker_data = process_single_batch_file(
-                    file_path,
-                    uploaded_file.filename,
-                    mode,
-                    batch_folder
+
+                saved_files.append(
+                    (
+                        uploaded_file,
+                        file_path
+                    )
                 )
+
+            worker_results = {}
+
+            with ThreadPoolExecutor(
+                max_workers=BATCH_WORKERS
+            ) as executor:
+
+                futures = {
+
+                    executor.submit(
+                        process_single_batch_file,
+                        file_path,
+                        uploaded_file.filename,
+                        mode,
+                        batch_folder
+                    ): uploaded_file
+
+                    for uploaded_file, file_path
+                    in saved_files
+                }
+
+                for future in as_completed(
+                    futures
+                ):
+
+                    worker_data = future.result()
+
+                    worker_results[
+                        worker_data["filename"]
+                    ] = worker_data
+            for uploaded_file, file_path in saved_files:
+
+                worker_data = worker_results[
+                    uploaded_file.filename
+                ]
 
                 print(worker_data)
 
@@ -334,74 +429,72 @@ def process():
                     processed_files.append(
                         uploaded_file.filename
                     )
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
+                    # if os.path.exists(file_path):
+                    #     os.remove(file_path)
 
                     continue
+                
                 output_file = os.path.join(
                     batch_folder,
                     f"{os.path.splitext(uploaded_file.filename)[0]}_result.txt"
                 )
-
-                is_pdf = uploaded_file.filename.lower().endswith(
-                    ".pdf"
-                )
-
-                if is_pdf:
-
-                    pdf_confidence = process_pdf(
-                        file_path,
-                        output_file,
-                        current_mode
-                    )
+                if worker_data["image_done"]:
 
                     processed_files.append(
                         uploaded_file.filename
                     )
 
-                    if pdf_confidence is not None:
+                    confidence_scores.append(
+                        worker_data["confidence"]
+                    )
+
+                    continue
+
+                if worker_data["pdf_done"]:
+
+                    processed_files.append(
+                        uploaded_file.filename
+                    )
+
+                    if worker_data["confidence"] is not None:
 
                         confidence_scores.append(
-                            pdf_confidence
+                            worker_data["confidence"]
                         )
 
-                else:
+                    continue
 
-                    if current_mode == "ocr":
+                is_pdf = worker_data["is_pdf"]
 
-                        normal_result, normal_confidence = process_image(
+                
+
+                if current_mode == "ocr":
+
+                    normal_result, normal_confidence = process_image(
+                        file_path,
+                        output_file,
+                        "normal"
+                    )
+
+                    if normal_confidence < 90:
+
+                        print(
+                            "Low confidence detected. Trying handwriting OCR..."
+                        )
+
+                        handwriting_result, handwriting_confidence = process_image(
                             file_path,
                             output_file,
-                            "normal"
+                            "handwriting"
                         )
 
-                        if normal_confidence < 90:
+                        if handwriting_confidence > normal_confidence:
 
-                            print(
-                                "Low confidence detected. Trying handwriting OCR..."
-                            )
+                            result = handwriting_result
 
-                            handwriting_result, handwriting_confidence = process_image(
-                                file_path,
-                                output_file,
-                                "handwriting"
-                            )
+                            average_confidence = handwriting_confidence
 
-                            if handwriting_confidence > normal_confidence:
-
-                                result = handwriting_result
-
-                                average_confidence = handwriting_confidence
-
-                                current_mode = "handwriting"
-
-                            else:
-
-                                result = normal_result
-
-                                average_confidence = normal_confidence
-
-                                current_mode = "normal"
+                            current_mode = "handwriting"
 
                         else:
 
@@ -413,19 +506,27 @@ def process():
 
                     else:
 
-                        result, average_confidence = process_image(
-                            file_path,
-                            output_file,
-                            current_mode
-                        )
+                        result = normal_result
 
-                    processed_files.append(
-                        uploaded_file.filename
+                        average_confidence = normal_confidence
+
+                        current_mode = "normal"
+
+                else:
+
+                    result, average_confidence = process_image(
+                        file_path,
+                        output_file,
+                        current_mode
                     )
 
-                    confidence_scores.append(
-                        average_confidence
-                    )
+                processed_files.append(
+                    uploaded_file.filename
+                )
+
+                confidence_scores.append(
+                    average_confidence
+                )
 
                 json_name = (
                     f"{os.path.splitext(uploaded_file.filename)[0]}.json"
@@ -450,8 +551,8 @@ def process():
                         json_source,
                         json_destination
                         )
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
+                    # if os.path.exists(file_path):
+                    #     os.remove(file_path)
             zip_file = os.path.join(
                 "output",
                 "batch_results.zip"
@@ -479,6 +580,12 @@ def process():
                             file_path,
                             arcname=file
                         )
+
+            for _, file_path in saved_files:
+
+                if os.path.exists(file_path):
+
+                    os.remove(file_path)
 
             shutil.rmtree(
                 batch_folder,
