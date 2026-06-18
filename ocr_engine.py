@@ -24,7 +24,7 @@ from concurrent.futures import (
 OCR_MODE = "normal"
 SHOW_CONFIDENCE = False
 USE_PREPROCESSING = False
-PDF_PAGE_WORKERS = 2
+PDF_PAGE_WORKERS = 1
 INPUT_FOLDER = "input"
 OUTPUT_FOLDER = "output"
 
@@ -165,6 +165,9 @@ def process_image(image_path, output_file,mode='normal'):
 
             total_confidence = 0
             confidence_count = 0
+            if not result or not result[0]:
+                # No OCR result for this image — return empty result
+                return ("", 0)
 
             for line in result[0]:
 
@@ -391,6 +394,8 @@ def process_pdf(pdf_path, output_file, mode):
                 file.write(
                     f"\n===== PAGE {page_num + 1} =====\n"
                 )
+                if not result or not result[0]:
+                    continue
 
                 for line in result[0]:
 

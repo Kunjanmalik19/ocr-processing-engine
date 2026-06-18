@@ -122,7 +122,7 @@ def save_uploaded_file(uploaded_file):
     )
 
     file_path = os.path.join(
-        TEMP_UPLOAD_FOLDER,
+        UPLOAD_FOLDER,
         unique_name
     )
 
@@ -440,6 +440,29 @@ def process():
                 )
                 if worker_data["image_done"]:
 
+                    json_name = (
+                        f"{os.path.splitext(os.path.basename(file_path))[0]}.json"
+                    )
+
+                    json_source = os.path.join(
+                        "output",
+                        json_name
+                    )
+
+                    json_destination = os.path.join(
+                        batch_folder,
+                        json_name
+                    )
+
+                    if os.path.exists(json_source):
+
+                        shutil.copy(
+                            json_source,
+                            json_destination
+                        )
+
+                        print(f"JSON copied: {json_name}")
+
                     processed_files.append(
                         uploaded_file.filename
                     )
@@ -451,6 +474,29 @@ def process():
                     continue
 
                 if worker_data["pdf_done"]:
+
+                    json_name = (
+                        f"{os.path.splitext(os.path.basename(file_path))[0]}.json"
+                    )
+
+                    json_source = os.path.join(
+                        "output",
+                        json_name
+                    )
+
+                    json_destination = os.path.join(
+                        batch_folder,
+                        json_name
+                    )
+
+                    if os.path.exists(json_source):
+
+                        shutil.copy(
+                            json_source,
+                            json_destination
+                        )
+
+                        print(f"JSON copied: {json_name}")
 
                     processed_files.append(
                         uploaded_file.filename
@@ -529,13 +575,13 @@ def process():
                 )
 
                 json_name = (
-                    f"{os.path.splitext(uploaded_file.filename)[0]}.json"
-                    )
+                    f"{os.path.splitext(os.path.basename(file_path))[0]}.json"
+                )
 
                 json_source = os.path.join(
                     "output",
                     json_name
-                    )
+                )
 
                 json_destination = os.path.join(
                     batch_folder,
@@ -582,10 +628,9 @@ def process():
                         )
 
             for _, file_path in saved_files:
-
-                if os.path.exists(file_path):
-
-                    os.remove(file_path)
+                pass
+                # if os.path.exists(file_path):
+                #     os.remove(file_path)
 
             shutil.rmtree(
                 batch_folder,
@@ -628,9 +673,8 @@ def process():
                 detected_mode=None,
                 processed_summary=processed_summary,
                 uploaded_filenames=[
-                    f.filename
-                    for f in uploaded_files
-                
+                    os.path.basename(file_path)
+                    for _, file_path in saved_files
                 ]
             )
         
@@ -760,8 +804,7 @@ def process():
                 average_confidence=average_confidence,
                 detected_mode=mode,
                 uploaded_filenames=[
-                    f.filename
-                    for f in uploaded_files
+                    os.path.basename(file_path)
                 ]
             )
 
